@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EX Monitoring Dashboard | ป้ายทางหนีไฟ - ตึกภูมิสิริมังคลานุสรณ์</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080c14; --surface:#0e1420; --card:#111827; --border:#1c2a3a; --border2:#243040;
+  --accent:#00ff8c; --accent2:#00b366; --text:#d3f0e2; --muted:#4a806a;
+  --ok-top:#0f2e1a; --ok-mid:#0a1f12; --ok-bdr:#2a5a3a; --ok-shd:#0a3a1e; --ok-glow:rgba(0,255,140,.35); --ok-txt:#00ff8c;
+  --br-top:#2e1a1a; --br-mid:#1f0f0f; --br-bdr:#8b1a1a; --br-shd:#5a0a0a; --br-glow:rgba(255,50,50,.4); --br-txt:#ff4444;
+  --un-top:#1a1e26; --un-mid:#121620; --un-bdr:#2a3550; --un-shd:#0a1020; --un-txt:#6a8ab0;
+  --success:#00ff8c; --warning:#ffd700; --danger:#ff4444; --info:#00e5ff;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;
+  background-image:radial-gradient(ellipse at 15% 10%,rgba(0,255,140,.04) 0%,transparent 45%),
+                    radial-gradient(ellipse at 85% 90%,rgba(0,180,255,.03) 0%,transparent 45%);}
+.hdr{background:linear-gradient(180deg,#060a10,#0a1410);border-bottom:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:space-between;padding:11px 20px;position:sticky;top:0;z-index:50;
+  box-shadow:0 2px 20px rgba(0,0,0,.4);}
+.hdr-left{display:flex;align-items:center;gap:12px;}
+.logo{background:linear-gradient(135deg,#003322,#004d33);border:1px solid var(--accent2);border-radius:9px;
+  padding:7px 13px;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;color:var(--accent);letter-spacing:.1em;}
+.hdr h1{font-size:16px;font-weight:700;color:#fff;}
+.hdr h1 span{color:var(--accent);}
+.hdr-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+.hdr-right{display:flex;align-items:center;gap:14px;}
+.live-badge{display:flex;align-items:center;gap:6px;background:rgba(0,255,140,.08);border:1px solid rgba(0,255,140,.25);
+  border-radius:100px;padding:4px 11px;font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--success);}
+.live-dot{width:6px;height:6px;background:var(--success);border-radius:50%;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.25;}}
+.clock{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);}
+
+.statbar{display:flex;gap:10px;padding:12px 20px;overflow-x:auto;border-bottom:1px solid var(--border);background:rgba(0,0,0,.3);}
+.stat{flex-shrink:0;background:var(--surface);border:1px solid var(--border2);border-radius:9px;padding:10px 18px;text-align:center;min-width:100px;}
+.stat .n{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:700;line-height:1;}
+.stat .l{font-size:10px;color:var(--muted);margin-top:4px;}
+.stat.total .n{color:var(--info)}.stat.ok .n{color:var(--success)}.stat.br .n{color:var(--danger)}.stat.un .n{color:var(--muted)}
+
+.ctrl{display:flex;align-items:center;gap:10px;padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.ctrl select,.ctrl input{background:var(--card);border:1px solid var(--border2);color:var(--text);
+  font-family:'Sarabun',sans-serif;font-size:13px;padding:7px 12px;border-radius:7px;outline:none;cursor:pointer;}
+.ctrl select:focus,.ctrl input:focus{border-color:var(--accent2);}
+.fbtn{padding:7px 14px;border-radius:7px;border:1px solid var(--border2);background:var(--card);color:var(--muted);
+  font-family:'Sarabun',sans-serif;font-size:12px;cursor:pointer;transition:all .15s;}
+.fbtn:hover{border-color:var(--accent2);color:var(--accent);}
+.fbtn.active{background:rgba(0,255,140,.1);border-color:var(--accent2);color:var(--accent);}
+.fbtn.ok.active{background:rgba(0,255,140,.1);border-color:rgba(0,255,140,.4);color:var(--success);}
+.fbtn.br.active{background:rgba(255,68,68,.1);border-color:rgba(255,68,68,.4);color:var(--danger);}
+.search{flex:1;min-width:160px;font-family:'IBM Plex Mono',monospace;}
+.search::placeholder{color:var(--muted);}
+.exportbtn{background:linear-gradient(135deg,var(--ok-shd),var(--accent2));color:#001;border:none;border-radius:7px;
+  font-family:'Sarabun',sans-serif;font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;}
+
+main{padding:14px 20px 60px;}
+.floor-grp{margin-bottom:22px;}
+.floor-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.floor-lbl{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700;color:var(--accent);
+  background:rgba(0,255,140,.08);border:1px solid rgba(0,255,140,.2);border-radius:7px;padding:5px 14px;flex-shrink:0;}
+.floor-div{flex:1;height:1px;background:var(--border);}
+.floor-cnt{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;white-space:nowrap;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;}
+
+.card{position:relative;border-radius:11px;padding:12px 12px 10px;cursor:pointer;transition:transform .12s;
+  border:1px solid var(--border2);background:linear-gradient(160deg,var(--un-top),var(--un-mid));}
+.card:hover{transform:translateY(-2px);}
+.card.ok{background:linear-gradient(160deg,var(--ok-top),var(--ok-mid));border-color:var(--ok-bdr);box-shadow:0 0 14px -6px var(--ok-glow);}
+.card.br{background:linear-gradient(160deg,var(--br-top),var(--br-mid));border-color:var(--br-bdr);box-shadow:0 0 14px -6px var(--br-glow);}
+.card .id{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:13px;color:#fff;}
+.card .zn{display:inline-block;font-size:10px;font-family:'IBM Plex Mono',monospace;background:rgba(255,255,255,.08);
+  border-radius:5px;padding:1px 6px;margin-left:5px;color:var(--muted);}
+.card .loc{font-size:11.5px;color:var(--text);margin-top:6px;line-height:1.35;min-height:30px;}
+.card .badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;border-radius:100px;
+  padding:3px 9px;margin-top:8px;}
+.card.ok .badge{background:rgba(0,255,140,.15);color:var(--ok-txt);}
+.card.br .badge{background:rgba(255,68,68,.15);color:var(--br-txt);}
+.card.un .badge{background:rgba(106,138,176,.15);color:var(--un-txt);}
+.dot{width:6px;height:6px;border-radius:50%;}
+.card.ok .dot{background:var(--ok-txt);box-shadow:0 0 6px var(--ok-txt);}
+.card.br .dot{background:var(--br-txt);box-shadow:0 0 6px var(--br-txt);animation:blink 1s infinite;}
+.card.un .dot{background:var(--un-txt);}
+
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(3px);z-index:200;
+  align-items:center;justify-content:center;padding:16px;}
+.modal-bg.show{display:flex;}
+.modal{background:var(--card);border:1px solid var(--border2);border-radius:14px;max-width:460px;width:100%;
+  max-height:88vh;overflow-y:auto;padding:20px;}
+.modal h2{font-size:16px;color:#fff;margin-bottom:2px;}
+.modal .sub{font-size:12px;color:var(--muted);margin-bottom:16px;font-family:'IBM Plex Mono',monospace;}
+.chk-item{border:1px solid var(--border2);border-radius:9px;padding:10px 12px;margin-bottom:9px;}
+.chk-item label{font-size:12.5px;font-weight:600;color:var(--text);display:block;margin-bottom:7px;}
+.chk-opts{display:flex;gap:6px;flex-wrap:wrap;}
+.chk-opt{flex:1;min-width:70px;text-align:center;padding:7px 8px;border-radius:7px;border:1px solid var(--border2);
+  background:var(--surface);font-size:11.5px;cursor:pointer;color:var(--muted);transition:all .12s;}
+.chk-opt.sel-pass{background:rgba(0,255,140,.12);border-color:var(--accent2);color:var(--ok-txt);}
+.chk-opt.sel-fail{background:rgba(255,68,68,.12);border-color:var(--br-bdr);color:var(--br-txt);}
+.batt-row{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.batt-row input{width:80px;background:var(--surface);border:1px solid var(--border2);color:var(--text);
+  border-radius:7px;padding:6px 9px;font-family:'IBM Plex Mono',monospace;font-size:12px;}
+.batt-row span{font-size:11px;color:var(--muted);}
+.overall{margin-top:14px;padding:12px;border-radius:9px;text-align:center;font-weight:700;font-size:13px;
+  border:1px solid var(--border2);background:var(--surface);}
+.overall.ok{color:var(--ok-txt);border-color:var(--ok-bdr);}
+.overall.br{color:var(--br-txt);border-color:var(--br-bdr);}
+textarea{width:100%;background:var(--surface);border:1px solid var(--border2);color:var(--text);border-radius:8px;
+  padding:9px;font-family:'Sarabun',sans-serif;font-size:12.5px;margin-top:10px;resize:vertical;min-height:50px;}
+.modal-actions{display:flex;gap:10px;margin-top:16px;}
+.btn-save{flex:1;background:linear-gradient(135deg,var(--ok-shd),var(--accent2));color:#001;border:none;
+  border-radius:8px;padding:11px;font-family:'Sarabun',sans-serif;font-weight:700;font-size:13.5px;cursor:pointer;}
+.btn-cancel{background:transparent;border:1px solid var(--border2);color:var(--muted);border-radius:8px;
+  padding:11px 16px;font-family:'Sarabun',sans-serif;font-size:13px;cursor:pointer;}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--accent2);
+  color:var(--accent);padding:10px 20px;border-radius:9px;font-size:13px;z-index:300;display:none;}
+.empty{text-align:center;padding:60px 20px;color:var(--muted);}
+::-webkit-scrollbar{width:8px;height:8px;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
+@media(max-width:640px){.hdr h1{font-size:13px;}.grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));}}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="hdr-left">
+    <div class="logo">EX</div>
+    <div>
+      <h1>EX <span>Monitoring Dashboard</span></h1>
+      <div class="hdr-sub">ป้ายทางหนีไฟ (Exit Signage) · ตึกภูมิสิริมังคลานุสรณ์ รพ.จุฬาลงกรณ์</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="live-badge" id="syncBadge"><div class="live-dot" id="syncDot"></div><span id="syncText">LOCAL ONLY</span></div>
+    <div class="clock" id="clock">--:--:--</div>
+  </div>
+</div>
+
+<div class="statbar">
+  <div class="stat total"><div class="n" id="statTotal">0</div><div class="l">ทั้งหมด</div></div>
+  <div class="stat ok"><div class="n" id="statOk">0</div><div class="l">ปกติ</div></div>
+  <div class="stat br"><div class="n" id="statBr">0</div><div class="l">ชำรุด</div></div>
+  <div class="stat un"><div class="n" id="statUn">0</div><div class="l">ยังไม่ตรวจ</div></div>
+</div>
+
+<div class="ctrl">
+  <input class="search" id="searchBox" placeholder="ค้นหาเลขป้าย / ตำแหน่ง..." oninput="applyFilter()">
+  <select id="floorSel" onchange="applyFilter()"><option value="">ทุกชั้น</option></select>
+  <select id="zoneSel" onchange="applyFilter()">
+    <option value="">ทุกโซน</option><option value="A">โซน A</option><option value="B">โซน B</option>
+    <option value="C">โซน C</option><option value="D">โซน D</option>
+  </select>
+  <button class="fbtn ok" id="fbtnOk" onclick="toggleStatusFilter('ok',this)">ปกติ</button>
+  <button class="fbtn br" id="fbtnBr" onclick="toggleStatusFilter('br',this)">ชำรุด</button>
+  <button class="fbtn" id="fbtnUn" onclick="toggleStatusFilter('un',this)">ยังไม่ตรวจ</button>
+  <button class="exportbtn" onclick="exportCSV()">⬇ Export CSV</button>
+</div>
+
+<main id="mainArea"></main>
+
+<div class="modal-bg" id="modalBg" onclick="closeOut(event)">
+  <div class="modal" id="modal">
+    <h2 id="mTitle">-</h2>
+    <div class="sub" id="mSub">-</div>
+
+    <div class="chk-item">
+      <label>1. ทดสอบสวิตซ์ไฟฉุกเฉิน (Push-to-test)</label>
+      <div class="chk-opts" id="chkSwitch">
+        <div class="chk-opt" onclick="setChk('switch','pass',this)">✓ ปกติ</div>
+        <div class="chk-opt" onclick="setChk('switch','fail',this)">✕ เสีย</div>
+      </div>
+    </div>
+
+    <div class="chk-item">
+      <label>2. ความสว่าง / สภาพหลอด LED</label>
+      <div class="chk-opts" id="chkLed">
+        <div class="chk-opt" onclick="setChk('led','pass',this)">✓ ปกติ</div>
+        <div class="chk-opt" onclick="setChk('led','fail',this)">✕ ริบหรี่/ดับ</div>
+      </div>
+    </div>
+
+    <div class="chk-item">
+      <label>3. เวลาสำรองไฟแบตเตอรี่ (เกณฑ์ขั้นต่ำ 90 นาที)</label>
+      <div class="chk-opts" id="chkBatt">
+        <div class="chk-opt" onclick="setChk('batt','pass',this)">✓ ผ่าน</div>
+        <div class="chk-opt" onclick="setChk('batt','fail',this)">✕ ไม่ผ่าน</div>
+      </div>
+      <div class="batt-row"><input type="number" id="battMin" placeholder="0" min="0"><span>นาทีที่วัดได้ (ถ้ามี)</span></div>
+    </div>
+
+    <div class="chk-item">
+      <label>4. สภาพตัวป้าย / โครงยึด / สายไฟ</label>
+      <div class="chk-opts" id="chkBody">
+        <div class="chk-opt" onclick="setChk('body','pass',this)">✓ ปกติ</div>
+        <div class="chk-opt" onclick="setChk('body','fail',this)">✕ ชำรุด</div>
+      </div>
+    </div>
+
+    <div class="overall" id="overallBox">กรุณาตรวจครบทั้ง 4 ข้อ</div>
+    <textarea id="noteBox" placeholder="หมายเหตุเพิ่มเติม (ถ้ามี)"></textarea>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn-save" onclick="saveCheck()">บันทึกผล PM</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+/* ===== RAW DATA: [id, asset, status(0=ยังไม่ตรวจ,1=ปกติ,2=ชำรุด), location, zone, floor, dept] ===== */
+const RAW = 
+[["1EX-B4/1", "", 0, "ทางเดินหน้าบันไดหนีไฟ 8", "A", "B4", "Exit Signage"], ["1EX-B4/2", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "B4", "Exit Signage"], ["1EX-B4/3", "", 0, "ทางเดินหน้าบันไดหนีไฟ 2", "D", "B4", "Exit Signage"], ["1EX-B4/4", "", 0, "ทางเดินหน้าบันไดหนีไฟ 1", "D", "B4", "Exit Signage"], ["1EX-B4/5", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "B", "B4", "Exit Signage"], ["1EX-B4/6", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "B", "B4", "Exit Signage"], ["1EX-B3/1", "", 0, "ทางเดินหน้าบันไดหนีไฟ 8", "A", "B3", "Exit Signage"], ["1EX-B3/2", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "B3", "Exit Signage"], ["1EX-B3/3", "", 0, "ทางเดินหน้าบันไดหนีไฟ 2", "D", "B3", "Exit Signage"], ["1EX-B3/4", "", 0, "ทางเดินหน้าบันไดหนีไฟ 1", "D", "B3", "Exit Signage"], ["1EX-B3/5", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "B", "B3", "Exit Signage"], ["1EX-B3/6", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "B", "B3", "Exit Signage"], ["1EX-B2/1", "", 0, "ทางเดินหน้าบันไดหนีไฟ 8", "A", "B2", "Exit Signage"], ["1EX-B2/2", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "B2", "Exit Signage"], ["1EX-B2/3", "", 0, "ทางเดินหน้าบันไดหนีไฟ 2", "D", "B2", "Exit Signage"], ["1EX-B2/4", "", 0, "ทางเดินหน้าบันไดหนีไฟ 1", "D", "B2", "Exit Signage"], ["1EX-B2/6", "", 0, "ส่วนกลาง", "A", "B2", "Exit Signage"], ["1EX-B2/5", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "B", "B2", "Exit Signage"], ["1EX-B1/1", "", 0, "ทางเดินพื้นที่ส่วนกลางหน้าห้อง MDB", "A", "B1", "Exit Signage"], ["1EX-B1/2", "", 0, "ทางเดินพื้นที่ส่วนกลางหน้าห้อง TSSU", "A", "B1", "Exit Signage"], ["1EX-B1/3", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "B1", "Exit Signage"], ["1EX-B1/4", "", 0, "ทางเดินหน้าบันไดหนีไฟ 2", "D", "B1", "Exit Signage"], ["1EX-B1/5", "", 0, "ทางเดินหน้าบันไดหนีไฟ 1", "D", "B1", "Exit Signage"], ["1EX-B1/6", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "A", "B1", "Exit Signage"], ["1EX-B1/7", "", 0, "ทางเดิน", "D", "B1", "Exit Signage"], ["1EX-B1/8", "", 0, "คลังยา", "A", "B1", "Exit Signage"], ["1EX-B1/9", "", 0, "TSSU", "A", "B1", "Exit Signage"], ["1EX-B1/10", "", 0, "TSSU", "A", "B1", "Exit Signage"], ["1EX-1/1", "", 0, "ประตูทางเข้า-ออกโถงพักรอ", "A", "1", "Exit Signage"], ["1EX-1/2", "", 0, "ประตูทางเข้า-ออกโถงพักรอ", "A", "1", "Exit Signage"], ["1EX-1/3", "", 0, "ประตูทางเข้า-ออกโถงพักรอ", "D", "1", "Exit Signage"], ["1EX-1/4", "", 0, "ประตูทางเข้า-ออกโถงพักรอ", "D", "1", "Exit Signage"], ["1EX-1/5", "", 0, "ประตูทางเข้า-ออกทางเชื่อม", "D", "1", "Exit Signage"], ["1EX-1/6", "", 0, "ประตูทางเข้า-ออกโถงลิฟท์", "D", "1", "Exit Signage"], ["1EX-1/7", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 3", "D", "1", "Exit Signage"], ["1EX-1/8", "", 0, "หน้าทางออกบันได 8", "B", "1", "Exit Signage"], ["1EX-1/9", "", 0, "ทางเดินหน้าบันไดหนีไฟ 4", "B", "1", "Exit Signage"], ["1EX-1/10", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "B", "1", "Exit Signage"], ["1EX-1/11", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "B", "1", "Exit Signage"], ["1EX-1/12", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "B", "1", "Exit Signage"], ["2EX-1/1", "", 0, "พื้นที่ส่วนกลาง", "C", "1", "Exit Signage"], ["2EX-1/2", "", 0, "พื้นที่ส่วนกลาง", "C", "1", "Exit Signage"], ["2EX-1/3", "", 0, "พื้นที่ส่วนกลาง", "C", "1", "Exit Signage"], ["2EX-1/4", "", 0, "พื้นที่ส่วนกลาง", "C", "1", "Exit Signage"], ["2EX-1/5", "", 0, "พื้นที่ส่วนกลาง", "C", "1", "Exit Signage"], ["1EX-M/1", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "MZ", "Exit Signage"], ["1EX-M/2", "", 0, "หน้าห้องคลีนิคนอกเวลา", "D", "MZ", "Exit Signage"], ["1EX-M/3", "", 0, "หน้าแผนก OBSERVATION Ward", "D", "MZ", "Exit Signage"], ["1EX-M/4", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 3", "D", "MZ", "Exit Signage"], ["1EX-M/5", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 3", "D", "MZ", "Exit Signage"], ["1EX-M/6", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "D", "MZ", "Exit Signage"], ["1EX-M/7", "", 0, "ทางเดินหน้าบันไดหนีไฟ 4", "D", "MZ", "Exit Signage"], ["1EX-M/8", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "D", "MZ", "Exit Signage"], ["1EX-M/9", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "MZ", "Exit Signage"], ["1EX-M/10", "", 0, "ทางเดินหนน้าบันไดหนีไฟ 1", "D", "MZ", "Exit Signage"], ["1EX-M/11", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "MZ", "Exit Signage"], ["1EX-M/12", "", 0, "ทางเดินหน้าบันไดหนีไฟ 2", "D", "MZ", "Exit Signage"], ["2EX-M/1", "", 0, "ส่วนกลาง", "C", "MZ", "Exit Signage"], ["2EX-M/2", "", 0, "ส่วนกลาง", "C", "MZ", "Exit Signage"], ["2EX-M/3", "", 0, "ส่วนกลาง", "C", "MZ", "Exit Signage"], ["2EX-M/4", "", 0, "ส่วนกลาง", "C", "MZ", "Exit Signage"], ["2EX-M/5", "", 0, "ส่วนกลาง", "C", "MZ", "Exit Signage"], ["1EX-2/1", "", 0, "โถงทางเดินใหญ่", "D", "2", "Exit Signage"], ["1EX-2/2", "", 0, "โถงทางเดินใหญ่", "D", "2", "Exit Signage"], ["1EX-2/3", "", 0, "ทางเดิบริการหน้าห้องพัก จนท.", "D", "2", "Exit Signage"], ["1EX-2/4", "", 0, "ทางเดินพื้นที่ส่วนกลางหน้าห้องสื่อสาร", "D", "2", "Exit Signage"], ["1EX-2/5", "", 0, "ทางเดินพื้นที่ส่วนกลางหน้าห้องสมุด", "A", "2", "Exit Signage"], ["1EX-2/6", "", 0, "โถงพักรอ", "A", "2", "Exit Signage"], ["1EX-2/7", "", 0, "โถงทางเดินใหญ่", "A", "2", "Exit Signage"], ["1EX-2/8", "", 0, "โถงทางเดินใหญ่", "A", "2", "Exit Signage"], ["1EX-2/9", "", 0, "โถงพักรอ", "A", "2", "Exit Signage"], ["1EX-2/10", "", 0, "โถงพักรอ MRI", "A", "2", "Exit Signage"], ["1EX-2/11", "", 0, "โถงทางเดินหน้าห้องน้ำ", "A", "2", "Exit Signage"], ["1EX-2/12", "", 0, "โถงทางเดินพื้นที่ส่วนกลาง", "A", "2", "Exit Signage"], ["1EX-2/13", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 1", "A", "2", "Exit Signage"], ["1EX-2/14", "", 0, "พื้นที่ส่วนกลาง", "B", "2", "Exit Signage"], ["1EX-2/15", "", 0, "แผนก MRI", "B", "2", "Exit Signage"], ["1EX-2/16", "", 0, "แผนก MRI", "B", "2", "Exit Signage"], ["1EX-2/17", "", 0, "พื้นที่ส่วนกลาง", "D", "2", "Exit Signage"], ["1EX-2/18", "", 0, "พื้นที่ส่วนกลาง", "D", "2", "Exit Signage"], ["1EX-2/19", "", 0, "แผนก MRI", "B", "2", "Exit Signage"], ["1EX-2/20", "", 0, "แผนก MRI", "B", "2", "Exit Signage"], ["1EX-2/21", "", 0, "แผนก MRI", "B", "2", "Exit Signage"], ["1EX-2/22", "", 0, "แผนก MRI", "B", "2", "Exit Signage"], ["1EX-2/23", "", 0, "แผนก MRI", "B", "2", "Exit Signage"], ["1EX-2/24", "", 0, "แผนก MRI", "B", "2", "Exit Signage"], ["1EX-2/25", "", 0, "แผนก MRI", "B", "2", "Exit Signage"], ["1EX-2/26", "", 0, "แผนก MRI", "B", "2", "Exit Signage"], ["1EX-2/27", "", 0, "แผนก MRI", "B", "2", "Exit Signage"], ["2EX-2/1", "", 0, "พื้นที่ส่วนกลาง", "C", "2", "Exit Signage"], ["2EX-2/2", "", 0, "พื้นที่ส่วนกลาง", "C", "2", "Exit Signage"], ["2EX-2/3", "", 0, "พื้นที่ส่วนกลาง", "C", "2", "Exit Signage"], ["2EX-2/4", "", 0, "พื้นที่ส่วนกลาง", "C", "2", "Exit Signage"], ["2EX-2/5", "", 0, "พื้นที่ส่วนกลาง", "C", "2", "Exit Signage"], ["2EX-2/6", "", 0, "พื้นที่ส่วนกลาง", "C", "2", "Exit Signage"], ["1EX-3/1", "", 0, "ทางเดินหน้าบันไดหนีไฟ 3", "D", "3", "Exit Signage"], ["1EX-3/2", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "3", "Exit Signage"], ["1EX-3/3", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "3", "Exit Signage"], ["1EX-3/4", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "A", "3", "Exit Signage"], ["1EX-3/5", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "A", "3", "Exit Signage"], ["1EX-3/6", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "A", "3", "Exit Signage"], ["1EX-3/7", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "A", "3", "Exit Signage"], ["1EX-3/8", "", 0, "ทางเดินหน้าบันไดหนีไฟ 4", "B", "3", "Exit Signage"], ["1EX-3/9", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "B", "3", "Exit Signage"], ["1EX-3/10", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "B", "3", "Exit Signage"], ["1EX-3/11", "", 0, "ทางเดินหน้าบันไดหนีไฟ 1", "B", "3", "Exit Signage"], ["1EX-3/12", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "B", "3", "Exit Signage"], ["1EX-3/13", "", 0, "ทางเดินพื้นที่ส่วนกลางหน้าบันไดหนีไฟ 2", "B", "3", "Exit Signage"], ["1EX-3/14", "", 0, "ทางเดินพื้นที่ส่วนกลางหน้าบันไดหนีไฟ 2", "B", "3", "Exit Signage"], ["1EX-3/15", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "B", "3", "Exit Signage"], ["1EX-3/16", "", 0, "จุลชีววิทยา", "B", "3", "Exit Signage"], ["1EX-3/17", "", 0, "จุลชีววิทยา", "B", "3", "Exit Signage"], ["1EX-3/18", "", 0, "จุลชีววิทยา", "B", "3", "Exit Signage"], ["1EX-3/19", "", 0, "จุลชีววิทยา", "B", "3", "Exit Signage"], ["1EX-3/20", "", 0, "จุลชีววิทยา", "B", "3", "Exit Signage"], ["1EX-3/21", "", 0, "จุลชีววิทยา", "B", "3", "Exit Signage"], ["1EX-3/22", "", 0, "จุลชีววิทยา", "B", "3", "Exit Signage"], ["2EX-3/1", "", 0, "ส่วนกลาง", "C", "3", "Exit Signage"], ["2EX-3/2", "", 0, "ส่วนกลาง", "C", "3", "Exit Signage"], ["2EX-3/3", "", 0, "ส่วนกลาง", "C", "3", "Exit Signage"], ["2EX-3/4", "", 0, "ส่วนกลาง", "C", "3", "Exit Signage"], ["1EX-3/23", "", 0, "จุลชีววิทยา", "B", "3", "Exit Signage"], ["1EX-3/24", "", 0, "จุลชีววิทยา", "B", "3", "Exit Signage"], ["1EX-3/25", "", 0, "เวชศาตร์ชันสูตร", "B", "3", "Exit Signage"], ["1EX-3/26", "", 0, "เวชศาตร์ชันสูตร", "B", "3", "Exit Signage"], ["1EX-3/27", "", 0, "แผนก ธนาคารเลือด", "B", "3", "Exit Signage"], ["1EX-3/28", "", 0, "แผนก ธนาคารเลือด", "B", "3", "Exit Signage"], ["1EX-3/29", "", 0, "แผนก ธนาคารเลือด", "B", "3", "Exit Signage"], ["1EX-3/30", "", 0, "แผนก ธนาคารเลือด", "B", "3", "Exit Signage"], ["1EX-3/31", "", 0, "แผนก ธนาคารเลือด", "B", "3", "Exit Signage"], ["1EX-3/32", "", 0, "แผนก ธนาคารเลือด", "B", "3", "Exit Signage"], ["1EX-4/1", "", 0, "ทางเดินส่วนกลาง", "A", "4", "Exit Signage"], ["1EX-4/2", "", 0, "ทางเดินส่วนกลาง", "A", "4", "Exit Signage"], ["1EX-4/3", "", 0, "ทางเดินส่วนกลาง", "A", "4", "Exit Signage"], ["1EX-4/4", "", 0, "ทางเดินส่วนกลาง", "A", "4", "Exit Signage"], ["1EX-4/5", "", 0, "ทางเดินส่วนกลาง", "A", "4", "Exit Signage"], ["1EX-4/6", "", 0, "ทางเดินส่วนกลาง", "A", "4", "Exit Signage"], ["1EX-4/7", "", 0, "ทางเดินส่วนกลาง", "A", "4", "Exit Signage"], ["1EX-4/8", "", 0, "ทางเดินส่วนกลาง", "A", "4", "Exit Signage"], ["1EX-4/9", "", 0, "ทางเดินส่วนกลาง", "B", "4", "Exit Signage"], ["1EX-4/10", "", 0, "ทางเดินส่วนกลาง", "B", "4", "Exit Signage"], ["1EX-4/11", "", 0, "ทางเดินส่วนกลาง", "B", "4", "Exit Signage"], ["1EX-4/12", "", 0, "ทางเดินส่วนกลาง", "B", "4", "Exit Signage"], ["1EX-4/13", "", 0, "ทางเดินส่วนกลาง", "B", "4", "Exit Signage"], ["1EX-4/14", "", 0, "ทางเดินส่วนกลาง", "B", "4", "Exit Signage"], ["1EX-4/15", "", 0, "ทางเดินส่วนกลาง", "B", "4", "Exit Signage"], ["1EX-4/16", "", 0, "ทางเดินส่วนกลาง", "B", "4", "Exit Signage"], ["1EX-4/17", "", 0, "ทางเดินส่วนกลาง", "B", "4", "Exit Signage"], ["2EX-4/1", "", 0, "โถงทางเดินพื้นที่ส่วนกลาง", "C", "4", "Exit Signage"], ["2EX-4/2", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 1", "C", "4", "Exit Signage"], ["2EX-4/3", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 2", "C", "4", "Exit Signage"], ["2EX-5/1", "", 0, "โถงทางเดินพื้นที่ส่วนกลาง", "C", "5", "Exit Signage"], ["2EX-5/2", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 1", "C", "5", "Exit Signage"], ["2EX-5/3", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 2", "C", "5", "Exit Signage"], ["2EX-5/4", "", 0, "โถงทางเดินพื้นที่ส่วนกลาง", "C", "5", "Exit Signage"], ["2EX-5/5", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 1", "C", "5", "Exit Signage"], ["2EX-5/6", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 2", "C", "5", "Exit Signage"], ["1EX-5/1", "", 0, "ทางเดินส่วนกลาง", "A", "5", "Exit Signage"], ["1EX-5/2", "", 0, "ทางเดินส่วนกลาง", "A", "5", "Exit Signage"], ["1EX-5/3", "", 0, "ทางเดินส่วนกลาง", "A", "5", "Exit Signage"], ["1EX-5/4", "", 0, "ทางเดินส่วนกลาง", "A", "5", "Exit Signage"], ["1EX-5/5", "", 0, "ทางเดินส่วนกลาง", "A", "5", "Exit Signage"], ["1EX-5/6", "", 0, "ทางเดินส่วนกลาง", "A", "5", "Exit Signage"], ["1EX-5/7", "", 0, "ทางเดินส่วนกลาง", "A", "5", "Exit Signage"], ["1EX-5/8", "", 0, "ทางเดินส่วนกลาง", "A", "5", "Exit Signage"], ["1EX-5/9", "", 0, "ทางเดินส่วนกลาง", "B", "5", "Exit Signage"], ["1EX-5/10", "", 0, "ทางเดินส่วนกลาง", "B", "5", "Exit Signage"], ["1EX-5/11", "", 0, "ทางเดินส่วนกลาง", "B", "5", "Exit Signage"], ["1EX-5/12", "", 0, "ทางเดินส่วนกลาง", "B", "5", "Exit Signage"], ["1EX-5/13", "", 0, "ทางเดินส่วนกลาง", "B", "5", "Exit Signage"], ["1EX-5/14", "", 0, "ทางเดินส่วนกลาง", "B", "5", "Exit Signage"], ["1EX-5/15", "", 0, "ทางเดินส่วนกลาง", "B", "5", "Exit Signage"], ["1EX-5/16", "", 0, "ทางเดินส่วนกลาง", "B", "5", "Exit Signage"], ["1EX-5/17", "", 0, "ทางเดินส่วนกลาง", "B", "5", "Exit Signage"], ["1EX-5/18", "", 0, "ทางเดินส่วนกลาง", "B", "5", "Exit Signage"], ["1EX-6/1", "", 0, "ทางเดินหน้าบันไดหนีไฟ 3", "A", "6", "Exit Signage"], ["1EX-6/2", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "6", "Exit Signage"], ["1EX-6/3", "", 0, "ทางเดินหน้าห้องเก็บของ 2", "D", "6", "Exit Signage"], ["1EX-6/4", "", 0, "ทางเดินหน้าโถงลิฟท์โซน 2", "D", "6", "Exit Signage"], ["1EX-6/5", "", 0, "ทางเดินหน้าห้องรอผ่าตัด", "D", "6", "Exit Signage"], ["1EX-6/6", "", 0, "ทางเดินหน้าห้องน้ำชายโซน 2", "D", "6", "Exit Signage"], ["1EX-6/8", "", 0, "ทางเดินบันไดหนีไฟ 5", "B", "6", "Exit Signage"], ["1EX-6/9", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "B", "6", "Exit Signage"], ["1EX-6/10", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "B", "6", "Exit Signage"], ["1EX-6/11", "", 0, "หน้าห้องเปลี่ยนเสื้อหญิงโซน 4", "B", "6", "Exit Signage"], ["1EX-6/12", "", 0, "ทางเดินหน้าบันไดหนีไฟ 1", "D", "6", "Exit Signage"], ["1EX-6/13", "", 0, "ทางเดินหน้าบันไดหนีไฟ 1", "D", "6", "Exit Signage"], ["1EX-6/14", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "6", "Exit Signage"], ["1EX-6/15", "", 0, "โถงบันไดหนีไฟ 2", "B", "6", "Exit Signage"], ["1EX-6/16", "", 0, "ทางเดินหน้าบันไดหนีไฟ 2", "B", "6", "Exit Signage"], ["1EX-6/17", "", 0, "ทางเดินหน้าบันไดหนีไฟ 2", "B", "6", "Exit Signage"], ["2EX-6/1", "", 0, "ทางเดินหน้าบันไดหนีไฟ 3", "A", "6", "Exit Signage"], ["2EX-6/2", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "6", "Exit Signage"], ["2EX-6/3", "", 0, "ทางเดินหน้าห้องเก็บของ 2", "D", "6", "Exit Signage"], ["2EX-6/4", "", 0, "ทางเดินหน้าโถงลิฟท์โซน 2", "D", "6", "Exit Signage"], ["2EX-7/1", "", 0, "ส่วนกลาง", "C", "7", "Exit Signage"], ["2EX-7/2", "", 0, "ส่วนกลาง", "C", "7", "Exit Signage"], ["2EX-7/3", "", 0, "ส่วนกลาง", "C", "7", "Exit Signage"], ["2EX-7/4", "", 0, "ส่วนกลาง", "C", "7", "Exit Signage"], ["1EX-7/1", "", 0, "ทางเดินหน้าบันไดหนีไฟ 3", "A", "7", "Exit Signage"], ["1EX-7/2", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "7", "Exit Signage"], ["1EX-7/3", "", 0, "ทางเดินหน้าห้องเก็บของ 2", "D", "7", "Exit Signage"], ["1EX-7/4", "", 0, "ทางเดินหน้าโถงลิฟท์โซน 2", "D", "7", "Exit Signage"], ["1EX-7/5", "", 0, "ทางเดินหน้าห้องรอผ่าตัด", "D", "7", "Exit Signage"], ["1EX-7/6", "", 0, "ทางเดินหน้าห้องน้ำชายโซน 2", "D", "7", "Exit Signage"], ["1EX-7/7", "", 0, "ทางเดินบันไดหนีไฟ 4", "B", "7", "Exit Signage"], ["1EX-7/8", "", 0, "ทางเดินบันไดหนีไฟ 5", "B", "7", "Exit Signage"], ["1EX-7/9", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "B", "7", "Exit Signage"], ["1EX-7/10", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "B", "7", "Exit Signage"], ["1EX-7/11", "", 0, "หน้าห้องเปลี่ยนเสื้อหญิงโซน 4", "B", "7", "Exit Signage"], ["1EX-7/12", "", 0, "ทางเดินหน้าบันไดหนีไฟ 1", "D", "7", "Exit Signage"], ["1EX-7/13", "", 0, "ทางเดินหน้าบันไดหนีไฟ 1", "D", "7", "Exit Signage"], ["1EX-7/14", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "7", "Exit Signage"], ["1EX-7/15", "", 0, "โถงบันไดหนีไฟ 2", "B", "7", "Exit Signage"], ["1EX-7/16", "", 0, "ทางเดินหน้าบันไดหนีไฟ 2", "B", "7", "Exit Signage"], ["2EX-8/1", "", 0, "พื้นที่ส่วนกลาง", "C", "8", "Exit Signage"], ["2EX-8/2", "", 0, "พื้นที่ส่วนกลาง", "C", "8", "Exit Signage"], ["2EX-8/3", "", 0, "พื้นที่ส่วนกลาง", "C", "8", "Exit Signage"], ["2EX-8/4", "", 0, "พื้นที่ส่วนกลาง", "C", "8", "Exit Signage"], ["1EX-8/1", "", 0, "ทางเดินหน้าบันไดหนีไฟ 3", "D", "8", "Exit Signage"], ["1EX-8/2", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "8", "Exit Signage"], ["1EX-8/3", "", 0, "ทางเดินหน้าห้องพักแพทย์ 1", "D", "8", "Exit Signage"], ["1EX-8/4", "", 0, "ทางเดินหน้าห้องพักแพทย์ 2", "D", "8", "Exit Signage"], ["1EX-8/5", "", 0, "หน้าห้องล้างมือแพทย์ 14", "D", "8", "Exit Signage"], ["1EX-8/6", "", 0, "ห้องล้างมือแพทย์-11", "D", "8", "Exit Signage"], ["1EX-8/7", "", 0, "ทางเดินหน้าบันไดหนีไฟ 4", "D", "8", "Exit Signage"], ["1EX-8/8", "", 0, "ทางเดินหน้าห้องพักฟื้น (ตา)", "D", "8", "Exit Signage"], ["1EX-8/9", "", 0, "โถงทางเดินหน้าลิฟท์โซน 2", "D", "8", "Exit Signage"], ["1EX-8/10", "", 0, "ห้องพักฟื้นตา", "D", "8", "Exit Signage"], ["1EX-8/11", "", 0, "ทางเดินหน้าบันไดหนีไฟ 1", "D", "8", "Exit Signage"], ["1EX-8/12", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "8", "Exit Signage"], ["1EX-8/13", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "D", "8", "Exit Signage"], ["1EX-8/14", "", 0, "ทางเดินหน้าแผนก DAY CARE", "D", "8", "Exit Signage"], ["1EX-8/15", "", 0, "ทางเดินหน้าห้องผ่าตัดคนไข้นอก", "D", "8", "Exit Signage"], ["1EX-8/16", "", 0, "ทางเดินหน้าห้องทำงานพยาบาลโซน 4", "D", "8", "Exit Signage"], ["1EX-8/17", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "8", "Exit Signage"], ["1EX-8/18", "", 0, "โถงบันไดหนีไฟ 2", "D", "8", "Exit Signage"], ["1EX-9/1", "", 0, "ส่วนกลาง", "C", "9", "Exit Signage"], ["1EX-9/2", "", 0, "ส่วนกลาง", "C", "9", "Exit Signage"], ["1EX-9/3", "", 0, "ส่วนกลาง", "C", "9", "Exit Signage"], ["1EX-9/4", "", 0, "ส่วนกลาง", "C", "9", "Exit Signage"], ["1EX-9/5", "", 0, "ส่วนกลาง", "C", "9", "Exit Signage"], ["1EX-9/6", "", 0, "ส่วนกลาง", "C", "9", "Exit Signage"], ["1EX-9/7", "", 0, "ส่วนกลาง", "C", "9", "Exit Signage"], ["1EX-9/8", "", 0, "ส่วนกลาง", "C", "9", "Exit Signage"], ["1EX-9/9", "", 0, "ส่วนกลาง", "C", "9", "Exit Signage"], ["1EX-9/10", "", 0, "ส่วนกลาง", "C", "9", "Exit Signage"], ["1EX-9/11", "", 0, "ส่วนกลาง", "C", "9", "Exit Signage"], ["1EX-9/12", "", 0, "ส่วนกลาง", "C", "9", "Exit Signage"], ["1EX-9/13", "", 0, "ส่วนกลาง", "C", "9", "Exit Signage"], ["1EX-9/14", "", 0, "ส่วนกลาง", "C", "9", "Exit Signage"], ["1EX-9/15", "", 0, "ส่วนกลาง", "C", "9", "Exit Signage"], ["1EX-9/16", "", 0, "ส่วนกลาง", "C", "9", "Exit Signage"], ["1EX-9/17", "", 0, "ส่วนกลาง", "C", "9", "Exit Signage"], ["1EX-9/18", "", 0, "ส่วนกลาง", "C", "9", "Exit Signage"], ["1EX-9/19", "", 0, "ส่วนกลาง", "C", "9", "Exit Signage"], ["1EX-9/20", "", 0, "ส่วนกลาง", "C", "9", "Exit Signage"], ["1EX-9/21", "", 0, "ส่วนกลาง", "C", "9", "Exit Signage"], ["2EX-9/1", "", 0, "ส่วนกลาง", "C", "9", "Exit Signage"], ["2EX-9/2", "", 0, "ส่วนกลาง", "C", "9", "Exit Signage"], ["2EX-9/3", "", 0, "ส่วนกลาง", "C", "9", "Exit Signage"], ["1EX-10/1", "", 0, "ทางเดินหน้าบันไดหนีไฟ 3", "D", "10", "Exit Signage"], ["1EX-10/2", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "10", "Exit Signage"], ["1EX-10/3", "", 0, "ทางเดินหน้าห้องน้ำโซน 2", "D", "10", "Exit Signage"], ["1EX-10/4", "", 0, "ทางเดินหน้าห้องน้ำ จนท. หญิง", "D", "10", "Exit Signage"], ["1EX-10/5", "", 0, "ทางเดินหน้าโถงพักรอ", "A", "10", "Exit Signage"], ["1EX-10/6", "", 0, "ทางเดินหน้าห้องน้ำ จนท. หญิง", "A", "10", "Exit Signage"], ["1EX-10/7", "", 0, "ทางเดินหน้าบันไดหนีไฟ 4", "A", "10", "Exit Signage"], ["1EX-10/8", "", 0, "ทางเดินหน้าห้องควบคุม 1", "A", "10", "Exit Signage"], ["1EX-10/9", "", 0, "ทางเดินหน้าห้องควบคุม 2", "B", "10", "Exit Signage"], ["1EX-10/10", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "B", "10", "Exit Signage"], ["1EX-10/11", "", 0, "ทางเดินหน้าห้องพักพยาบาลโซน 4", "B", "10", "Exit Signage"], ["1EX-10/12", "", 0, "ทางเดินหน้าห้องน้ำโซน 4", "B", "10", "Exit Signage"], ["1EX-10/13", "", 0, "ทางเดินหน้าบันไดหนีไฟ 1", "B", "10", "Exit Signage"], ["1EX-10/14", "", 0, "ทางเดินหน้าห้องสอนการแสดง 1", "B", "10", "Exit Signage"], ["1EX-10/15", "", 0, "โถงบันไดหนีไฟ 2", "B", "10", "Exit Signage"], ["2EX-10/1", "", 0, "พื้นที่ส่วนกลาง", "C", "10", "Exit Signage"], ["2EX-10/2", "", 0, "พื้นที่ส่วนกลาง", "C", "10", "Exit Signage"], ["2EX-10/3", "", 0, "พื้นที่ส่วนกลาง", "C", "10", "Exit Signage"], ["2EX-10/4", "", 0, "พื้นที่ส่วนกลาง", "C", "10", "Exit Signage"], ["2EX-10/5", "", 0, "พื้นที่ส่วนกลาง", "C", "10", "Exit Signage"], ["1EX-11/1", "", 0, "ส่วนกลาง", "D", "11", "Exit Signage"], ["1EX-11/2", "", 0, "ส่วนกลาง", "D", "11", "Exit Signage"], ["1EX-11/3", "", 0, "ส่วนกลาง", "D", "11", "Exit Signage"], ["1EX-11/4", "", 0, "ส่วนกลาง", "D", "11", "Exit Signage"], ["1EX-11/5", "", 0, "ส่วนกลาง", "D", "11", "Exit Signage"], ["1EX-11/6", "", 0, "ส่วนกลาง", "D", "11", "Exit Signage"], ["1EX-11/7", "", 0, "ส่วนกลาง", "D", "11", "Exit Signage"], ["1EX-11/8", "", 0, "ส่วนกลาง", "D", "11", "Exit Signage"], ["1EX-11/9", "", 0, "ส่วนกลาง", "D", "11", "Exit Signage"], ["1EX-11/10", "", 0, "ส่วนกลาง", "D", "11", "Exit Signage"], ["1EX-11/11", "", 0, "ส่วนกลาง", "D", "11", "Exit Signage"], ["1EX-11/12", "", 0, "ส่วนกลาง", "D", "11", "Exit Signage"], ["1EX-11/13", "", 0, "ส่วนกลาง", "D", "11", "Exit Signage"], ["1EX-11/14", "", 0, "ส่วนกลาง", "D", "11", "Exit Signage"], ["1EX-11/15", "", 0, "ส่วนกลาง", "D", "11", "Exit Signage"], ["1EX-11/16", "", 0, "ส่วนกลาง", "D", "11", "Exit Signage"], ["2EX-11 /1", "", 0, "ส่วนกลาง", "D", "11", "Exit Signage"], ["2EX-11/2", "", 0, "ส่วนกลาง", "C", "11", "Exit Signage"], ["2EX-11/3", "", 0, "ส่วนกลาง", "C", "11", "Exit Signage"], ["2EX-11/4", "", 0, "ส่วนกลาง", "C", "11", "Exit Signage"], ["2EX-11/5", "", 0, "ส่วนกลาง", "C", "11", "Exit Signage"], ["2EX-11/6", "", 0, "ส่วนกลาง", "C", "11", "Exit Signage"], ["2EX-12/1", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 3", "D", "12", "Exit Signage"], ["2EX-12/2", "", 0, "โถงทางเดินหน้าห้องน้ำชายโซน 2", "D", "12", "Exit Signage"], ["2EX-12/3", "", 0, "โถงทางเดินหน้าห้องเรียนโซน 2", "D", "12", "Exit Signage"], ["2EX-12/4", "", 0, "โถงพัก 2 ห้องเรียน B", "D", "12", "Exit Signage"], ["2EX-12/5", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 2", "D", "12", "Exit Signage"], ["1EX-12/1", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 3", "D", "12", "Exit Signage"], ["1EX-12/2", "", 0, "โถงทางเดินหน้าห้องน้ำชายโซน 2", "D", "12", "Exit Signage"], ["1EX-12/3", "", 0, "โถงทางเดินหน้าห้องเรียนโซน 2", "D", "12", "Exit Signage"], ["1EX-12/4", "", 0, "โถงพัก 2 ห้องเรียน B", "D", "12", "Exit Signage"], ["1EX-12/5", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 2", "D", "12", "Exit Signage"], ["1EX-12/6", "", 0, "โถงทางเดินหน้าห้องไฟฟ้า 2", "D", "12", "Exit Signage"], ["1EX-12/7", "", 0, "โถงทางเดินหน้าบันไดเลื่อน", "D", "12", "Exit Signage"], ["1EX-12/8", "", 0, "โถงพัก 1 ห้องเรียน B", "D", "12", "Exit Signage"], ["1EX-12/9", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 4", "D", "12", "Exit Signage"], ["1EX-12/10", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 1", "D", "12", "Exit Signage"], ["1EX-12/11", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 1", "D", "12", "Exit Signage"], ["1EX-12/12", "", 0, "โถงทางเดินหน้าห้องน้ำชายโซน 1", "D", "12", "Exit Signage"], ["1EX-12/13", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 1", "D", "12", "Exit Signage"], ["1EX-12/14", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 2", "D", "12", "Exit Signage"], ["1EX-13/1", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 3", "D", "13", "Exit Signage"], ["1EX-13/2", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 2", "D", "13", "Exit Signage"], ["1EX-13/3", "", 0, "โถงทางเดินหน้าบันไดเลื่อน", "D", "13", "Exit Signage"], ["1EX-13/4", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 1", "D", "13", "Exit Signage"], ["1EX-13/5", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 4", "D", "13", "Exit Signage"], ["1EX-13/6", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 1", "D", "13", "Exit Signage"], ["1EX-13/7", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 1", "D", "13", "Exit Signage"], ["1EX-13/8", "", 0, "โถงทางเดินหน้าห้องน้ำโซน 1", "D", "13", "Exit Signage"], ["1EX-13/9", "", 0, "โถงทางเดินหน้าห้องแม่บ้านโซน 1", "D", "13", "Exit Signage"], ["1EX-13/10", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 2", "D", "13", "Exit Signage"], ["2EX-13/1", "", 0, "โถงทางเดิน", "C", "13", "Exit Signage"], ["2EX-13/2", "", 0, "โถงทางเดิน", "C", "13", "Exit Signage"], ["2EX-13/3", "", 0, "โถงทางเดิน", "C", "13", "Exit Signage"], ["2EX-13/4", "", 0, "โถงทางเดิน", "C", "13", "Exit Signage"], ["2EX-13/5", "", 0, "โถงทางเดิน", "C", "13", "Exit Signage"], ["1EX-14/1", "", 0, "ส่วนกลาง", "D", "14", "Exit Signage"], ["1EX-14/2", "", 0, "ส่วนกลาง", "D", "14", "Exit Signage"], ["1EX-14/3", "", 0, "ส่วนกลาง", "D", "14", "Exit Signage"], ["1EX-14/4", "", 0, "ส่วนกลาง", "D", "14", "Exit Signage"], ["1EX-14/5", "", 0, "ส่วนกลาง", "D", "14", "Exit Signage"], ["1EX-14/6", "", 0, "ส่วนกลาง", "D", "14", "Exit Signage"], ["1EX-14/7", "", 0, "ส่วนกลาง", "D", "14", "Exit Signage"], ["1EX-14/8", "", 0, "ส่วนกลาง", "D", "14", "Exit Signage"], ["1EX-14/9", "", 0, "ส่วนกลาง", "D", "14", "Exit Signage"], ["1EX-14/10", "", 0, "ส่วนกลาง", "D", "14", "Exit Signage"], ["2EX-14/1", "", 0, "ส่วนกลาง", "C", "14", "Exit Signage"], ["2EX-14/2", "", 0, "ส่วนกลาง", "C", "14", "Exit Signage"], ["2EX-14/3", "", 0, "ส่วนกลาง", "C", "14", "Exit Signage"], ["2EX-14/4", "", 0, "ส่วนกลาง", "C", "14", "Exit Signage"], ["2EX-14/5", "", 0, "ส่วนกลาง", "C", "14", "Exit Signage"], ["1EX-15/1", "", 0, "ทางเดินหน้าบันไดหนีไฟ 3", "D", "15", "Exit Signage"], ["1EX-15/2", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "15", "Exit Signage"], ["1EX-15/3", "", 0, "ทางเดินหน้าห้องพักแพทย์ 1", "D", "15", "Exit Signage"], ["1EX-15/4", "", 0, "ทางเดินหน้าห้องพักแพทย์ 2", "D", "15", "Exit Signage"], ["1EX-15/5", "", 0, "หน้าห้องล้างมือแพทย์ 14", "D", "15", "Exit Signage"], ["1EX-15/6", "", 0, "ห้องล้างมือแพทย์-11", "D", "15", "Exit Signage"], ["1EX-15/7", "", 0, "ทางเดินหน้าบันไดหนีไฟ 4", "D", "15", "Exit Signage"], ["1EX-15/8", "", 0, "ทางเดินหน้าห้องพักฟื้น (ตา)", "D", "15", "Exit Signage"], ["1EX-15/9", "", 0, "โถงทางเดินหน้าลิฟท์โซน 2", "D", "15", "Exit Signage"], ["1EX-15/10", "", 0, "ห้องพักฟื้นตา", "D", "15", "Exit Signage"], ["1EX-15/11", "", 0, "ทางเดินหน้าบันไดหนีไฟ 1", "D", "15", "Exit Signage"], ["1EX-15/12", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "15", "Exit Signage"], ["1EX-15/15", "", 0, "พื้นที่ส่วนกลาง", "D", "15", "Exit Signage"], ["1EX-15/16", "", 0, "พื้นที่ส่วนกลาง", "D", "15", "Exit Signage"], ["1EX-15/13", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "D", "15", "Exit Signage"], ["1EX-15/14", "", 0, "ทางเดินหน้าแผนก DAY CARE", "D", "15", "Exit Signage"], ["2EX-15/1", "", 0, "พื้นที่ส่วนกลาง", "C", "15", "Exit Signage"], ["2EX-15/2", "", 0, "พื้นที่ส่วนกลาง", "C", "15", "Exit Signage"], ["2EX-15/3", "", 0, "พื้นที่ส่วนกลาง", "C", "15", "Exit Signage"], ["2EX-15/4", "", 0, "พื้นที่ส่วนกลาง", "C", "15", "Exit Signage"], ["2EX-15/5", "", 0, "พื้นที่ส่วนกลาง", "C", "15", "Exit Signage"], ["1EX-16/1", "", 0, "ส่วนกลาง", "D", "16", "Exit Signage"], ["1EX-16/2", "", 0, "ส่วนกลาง", "D", "16", "Exit Signage"], ["1EX-16/3", "", 0, "ส่วนกลาง", "D", "16", "Exit Signage"], ["1EX-16/4", "", 0, "ส่วนกลาง", "D", "16", "Exit Signage"], ["1EX-16/5", "", 0, "ส่วนกลาง", "D", "16", "Exit Signage"], ["1EX-16/6", "", 0, "ส่วนกลาง", "D", "16", "Exit Signage"], ["1EX-16/7", "", 0, "ส่วนกลาง", "D", "16", "Exit Signage"], ["1EX-16/8", "", 0, "ส่วนกลาง", "D", "16", "Exit Signage"], ["1EX-16/9", "", 0, "ส่วนกลาง", "D", "16", "Exit Signage"], ["1EX-16/10", "", 0, "ส่วนกลาง", "D", "16", "Exit Signage"], ["1EX-16/11", "", 0, "ส่วนกลาง", "D", "16", "Exit Signage"], ["1EX-16/12", "", 0, "ส่วนกลาง", "D", "16", "Exit Signage"], ["1EX-16/13", "", 0, "ส่วนกลาง", "D", "16", "Exit Signage"], ["1EX-16/14", "", 0, "ส่วนกลาง", "D", "16", "Exit Signage"], ["1EX-16/15", "", 0, "ส่วนกลาง", "D", "16", "Exit Signage"], ["1EX-16/16", "", 0, "ส่วนกลาง", "D", "16", "Exit Signage"], ["1EX-16/17", "", 0, "ส่วนกลาง", "D", "16", "Exit Signage"], ["2EX-16/1", "", 0, "ส่วนกลาง", "C", "16", "Exit Signage"], ["2EX-16/2", "", 0, "ส่วนกลาง", "C", "16", "Exit Signage"], ["2EX-16/3", "", 0, "ส่วนกลาง", "C", "16", "Exit Signage"], ["2EX-16/4", "", 0, "ส่วนกลาง", "C", "16", "Exit Signage"], ["2EX-16/5", "", 0, "ส่วนกลาง", "C", "16", "Exit Signage"], ["1EX-17/1", "", 0, "ส่วนกลาง", "D", "17", "Exit Signage"], ["1EX-17/2", "", 0, "ส่วนกลาง", "D", "17", "Exit Signage"], ["1EX-17/3", "", 0, "ส่วนกลาง", "D", "17", "Exit Signage"], ["1EX-17/4", "", 0, "ส่วนกลาง", "D", "17", "Exit Signage"], ["1EX-17/5", "", 0, "ส่วนกลาง", "D", "17", "Exit Signage"], ["1EX-17/6", "", 0, "ส่วนกลาง", "D", "17", "Exit Signage"], ["1EX-17/7", "", 0, "ส่วนกลาง", "D", "17", "Exit Signage"], ["1EX-17/8", "", 0, "ส่วนกลาง", "D", "17", "Exit Signage"], ["1EX-17/9", "", 0, "ส่วนกลาง", "D", "17", "Exit Signage"], ["1EX-17/10", "", 0, "ส่วนกลาง", "D", "17", "Exit Signage"], ["1EX-17/11", "", 0, "ส่วนกลาง", "D", "17", "Exit Signage"], ["1EX-17/12", "", 0, "ส่วนกลาง", "D", "17", "Exit Signage"], ["1EX-17/13", "", 0, "ส่วนกลาง", "D", "17", "Exit Signage"], ["1EX-17/14", "", 0, "ส่วนกลาง", "D", "17", "Exit Signage"], ["1EX-17/15", "", 0, "ส่วนกลาง", "D", "17", "Exit Signage"], ["1EX-17/16", "", 0, "ส่วนกลาง", "D", "17", "Exit Signage"], ["1EX-17/17", "", 0, "ส่วนกลาง", "D", "17", "Exit Signage"], ["2EX-17/1", "", 0, "ส่วนกลาง", "C", "17", "Exit Signage"], ["2EX-17/2", "", 0, "ส่วนกลาง", "C", "17", "Exit Signage"], ["2EX-17/3", "", 0, "ส่วนกลาง", "C", "17", "Exit Signage"], ["2EX-17/4", "", 0, "ส่วนกลาง", "C", "17", "Exit Signage"], ["2EX-17/5", "", 0, "ส่วนกลาง", "C", "17", "Exit Signage"], ["1EX-18/1", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 2", "D", "18", "Exit Signage"], ["1EX-18/2", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 14", "A", "18", "Exit Signage"], ["1EX-18/3", "", 0, "โถงทางเดิน 1", "D", "18", "Exit Signage"], ["1EX-18/4", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 2", "D", "18", "Exit Signage"], ["1EX-18/5", "", 0, "โถงทางเดิน 2", "D", "18", "Exit Signage"], ["1EX-18/6", "", 0, "โถงทางเดิน 2", "D", "18", "Exit Signage"], ["1EX-18/7", "", 0, "โถงทางเดิน 2", "D", "18", "Exit Signage"], ["1EX-18/8", "", 0, "โถงทางเดิน", "D", "18", "Exit Signage"], ["1EX-18/9", "", 0, "โถงทางเดิน", "D", "18", "Exit Signage"], ["1EX-18/10", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 2", "D", "18", "Exit Signage"], ["1EX-18/11", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "D", "18", "Exit Signage"], ["1EX-18/12", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "18", "Exit Signage"], ["1EX-18/13", "", 0, "ทางเดินหน้าบันไดหนีไฟ 1", "D", "18", "Exit Signage"], ["1EX-18/14", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "18", "Exit Signage"], ["1EX-18/15", "", 0, "ทางเดินหน้าบันไดหนีไฟ 2", "D", "18", "Exit Signage"], ["1EX-18/16", "", 0, "โถงทางเดิน", "D", "18", "Exit Signage"], ["1EX-18/17", "", 0, "โถงทางเดิน", "D", "18", "Exit Signage"], ["2EX-18/1", "", 0, "ส่วนกลาง", "C", "18", "Exit Signage"], ["2EX-18/2", "", 0, "ส่วนกลาง", "C", "18", "Exit Signage"], ["2EX-18/3", "", 0, "ส่วนกลาง", "C", "18", "Exit Signage"], ["2EX-18/4", "", 0, "ส่วนกลาง", "C", "18", "Exit Signage"], ["2EX-18/5", "", 0, "ส่วนกลาง", "C", "18", "Exit Signage"], ["1EX-19/15", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "19", "Exit Signage"], ["1EX-19/16", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "19", "Exit Signage"], ["1EX-19/17", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "19", "Exit Signage"], ["2EX-19/1", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "C", "19", "Exit Signage"], ["2EX-19/2", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "C", "19", "Exit Signage"], ["2EX-19/4", "", 0, "พื้นที่ส่วนกลาง", "C", "19", "Exit Signage"], ["2EX-19/5", "", 0, "พื้นที่ส่วนกลาง", "C", "19", "Exit Signage"], ["2EX-19/3", "", 0, "พื้นที่ส่วนกลาง", "C", "19", "Exit Signage"], ["1EX-19/1", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 2", "D", "19", "Exit Signage"], ["1EX-19/2", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 14", "A", "19", "Exit Signage"], ["1EX-19/3", "", 0, "โถงทางเดิน 1", "D", "19", "Exit Signage"], ["1EX-19/4", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 2", "D", "19", "Exit Signage"], ["1EX-19/5", "", 0, "โถงทางเดิน 2", "D", "19", "Exit Signage"], ["1EX-19/6", "", 0, "โถงทางเดิน 2", "D", "19", "Exit Signage"], ["1EX-19/7", "", 0, "โถงทางเดิน 2", "D", "19", "Exit Signage"], ["1EX-19/8", "", 0, "โถงทางเดิน", "D", "19", "Exit Signage"], ["1EX-19/9", "", 0, "โถงทางเดิน", "D", "19", "Exit Signage"], ["1EX-19/10", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 2", "D", "19", "Exit Signage"], ["1EX-19/11", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "D", "19", "Exit Signage"], ["1EX-19/12", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "19", "Exit Signage"], ["1EX-19/13", "", 0, "ทางเดินหน้าบันไดหนีไฟ 1", "D", "19", "Exit Signage"], ["1EX-19/14", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "19", "Exit Signage"], ["2EX-20/2", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 2", "D", "20", "Exit Signage"], ["1EX-20/2", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 14", "D", "20", "Exit Signage"], ["1EX-20/3", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 3", "D", "20", "Exit Signage"], ["1EX-20/4", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 3", "D", "20", "Exit Signage"], ["1EX-20/5", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "20", "Exit Signage"], ["1EX-20/6", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "20", "Exit Signage"], ["1EX-20/7", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "20", "Exit Signage"], ["1EX-20/8", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "20", "Exit Signage"], ["1EX-20/9", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "D", "20", "Exit Signage"], ["1EX-20/10", "", 0, "ทางเดินหน้าบันไดหนีไฟ 4", "D", "20", "Exit Signage"], ["1EX-20/11", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "D", "20", "Exit Signage"], ["1EX-20/12", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "20", "Exit Signage"], ["1EX-20/13", "", 0, "ทางเดินหน้าบันไดหนีไฟ 1", "D", "20", "Exit Signage"], ["2EX-20/1", "", 0, "โถงทางเดิน", "D", "20", "Exit Signage"], ["2EX-20/3", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 2", "D", "20", "Exit Signage"], ["2EX-20/4", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 2", "D", "20", "Exit Signage"], ["2EX-20/5", "", 0, "พื้นที่ส่วนกลาง", "D", "20", "Exit Signage"], ["2EX-20/6", "", 0, "พื้นที่ส่วนกลาง", "D", "20", "Exit Signage"], ["2EX-20/7", "", 0, "พื้นที่ส่วนกลาง", "D", "20", "Exit Signage"], ["1EX-20/1", "", 0, "โถงทางเดิน", "D", "20", "Exit Signage"], ["1EX-20/14", "", 0, "โถงทางเดิน", "D", "20", "Exit Signage"], ["1EX-20/15", "", 0, "โถงทางเดิน", "D", "20", "Exit Signage"], ["1EX-20/16", "", 0, "โถงทางเดิน", "D", "20", "Exit Signage"], ["1EX-20/17", "", 0, "โถงทางเดิน", "D", "20", "Exit Signage"], ["1EX-21/1", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 2", "D", "21", "Exit Signage"], ["1EX-21/2", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 14", "D", "21", "Exit Signage"], ["1EX-21/3", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 3", "D", "21", "Exit Signage"], ["1EX-21/4", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 3", "D", "21", "Exit Signage"], ["1EX-21/5", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "21", "Exit Signage"], ["1EX-21/6", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "21", "Exit Signage"], ["1EX-21/7", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "21", "Exit Signage"], ["1EX-21/8", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "21", "Exit Signage"], ["1EX-21/9", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "D", "21", "Exit Signage"], ["1EX-21/10", "", 0, "ทางเดินหน้าบันไดหนีไฟ 4", "D", "21", "Exit Signage"], ["1EX-21/11", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "D", "21", "Exit Signage"], ["1EX-21/12", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "21", "Exit Signage"], ["1EX-21/13", "", 0, "ทางเดินหน้าบันไดหนีไฟ 1", "D", "21", "Exit Signage"], ["1EX-21/14", "", 0, "โถงทางเดิน", "D", "21", "Exit Signage"], ["1EX-21/15", "", 0, "โถงทางเดิน", "D", "21", "Exit Signage"], ["1EX-21/16", "", 0, "โถงทางเดิน", "D", "21", "Exit Signage"], ["1EX-21/17", "", 0, "โถงทางเดิน", "D", "21", "Exit Signage"], ["2EX-21/1", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "C", "21", "Exit Signage"], ["2EX-21/2", "", 0, "ทางเดินหน้าบันไดหนีไฟ 2", "C", "21", "Exit Signage"], ["2EX-21/3", "", 0, "BM Transplant", "C", "21", "Exit Signage"], ["2EX-21/4", "", 0, "BM Transplant", "C", "21", "Exit Signage"], ["1EX-22/1", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 2", "D", "22", "Exit Signage"], ["1EX-22/2", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 14", "D", "22", "Exit Signage"], ["1EX-22/3", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 3", "D", "22", "Exit Signage"], ["1EX-22/4", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 3", "D", "22", "Exit Signage"], ["1EX-22/5", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "22", "Exit Signage"], ["1EX-22/6", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "22", "Exit Signage"], ["1EX-22/7", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "22", "Exit Signage"], ["1EX-22/8", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "22", "Exit Signage"], ["1EX-22/9", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "D", "22", "Exit Signage"], ["1EX-22/10", "", 0, "ทางเดินหน้าบันไดหนีไฟ 4", "D", "22", "Exit Signage"], ["1EX-22/11", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "D", "22", "Exit Signage"], ["1EX-22/12", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "22", "Exit Signage"], ["1EX-22/13", "", 0, "ทางเดินหน้าบันไดหนีไฟ 1", "D", "22", "Exit Signage"], ["1EX-22/14", "", 0, "โถงทางเดิน", "D", "22", "Exit Signage"], ["1EX-22/15", "", 0, "โถงทางเดิน", "D", "22", "Exit Signage"], ["1EX-22/16", "", 0, "โถงทางเดิน", "D", "22", "Exit Signage"], ["1EX-22/17", "", 0, "โถงทางเดิน", "D", "22", "Exit Signage"], ["1EX-22/18", "", 0, "โถงทางเดิน", "D", "22", "Exit Signage"], ["2EX-22/1", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "C", "22", "Exit Signage"], ["2EX-22/2", "", 0, "ทางเดินหน้าบันไดหนีไฟ 2", "C", "22", "Exit Signage"], ["2EX-22/3", "", 0, "BM Transplant", "C", "22", "Exit Signage"], ["2EX-22/4", "", 0, "BM Transplant", "C", "22", "Exit Signage"], ["1EX-23/1", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 2", "D", "23", "Exit Signage"], ["1EX-23/2", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 14", "D", "23", "Exit Signage"], ["1EX-23/3", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 3", "D", "23", "Exit Signage"], ["1EX-23/4", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 3", "D", "23", "Exit Signage"], ["1EX-23/5", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "23", "Exit Signage"], ["1EX-23/6", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "23", "Exit Signage"], ["1EX-23/7", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "23", "Exit Signage"], ["1EX-23/8", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "23", "Exit Signage"], ["1EX-23/9", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "D", "23", "Exit Signage"], ["1EX-23/10", "", 0, "ทางเดินหน้าบันไดหนีไฟ 4", "D", "23", "Exit Signage"], ["1EX-23/11", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "D", "23", "Exit Signage"], ["1EX-23/12", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "23", "Exit Signage"], ["1EX-23/13", "", 0, "ทางเดินหน้าบันไดหนีไฟ 1", "D", "23", "Exit Signage"], ["1EX-23/14", "", 0, "โถงทางเดิน", "D", "23", "Exit Signage"], ["1EX-23/15", "", 0, "โถงทางเดิน", "D", "23", "Exit Signage"], ["1EX-23/16", "", 0, "โถงทางเดิน", "D", "23", "Exit Signage"], ["1EX-23/17", "", 0, "โถงทางเดิน", "D", "23", "Exit Signage"], ["2EX-23/1", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "C", "23", "Exit Signage"], ["2EX-23/2", "", 0, "ทางเดินหน้าบันไดหนีไฟ 2", "C", "23", "Exit Signage"], ["2EX-23/3", "", 0, "พื้นที่ส่วนกลาง", "C", "23", "Exit Signage"], ["2EX-23/4", "", 0, "พื้นที่ส่วนกลาง", "C", "23", "Exit Signage"], ["1EX-24/1", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 2", "D", "24", "Exit Signage"], ["1EX-24/2", "", 0, "โถงทางเดินหน้าบันไดหนีไฟ 14", "D", "24", "Exit Signage"], ["1EX-24/3", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 3", "D", "24", "Exit Signage"], ["1EX-24/4", "", 0, "โถงทางเดินพื้นที่ส่วนกลางโซน 3", "D", "24", "Exit Signage"], ["1EX-24/5", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "24", "Exit Signage"], ["1EX-24/6", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "24", "Exit Signage"], ["1EX-24/7", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "24", "Exit Signage"], ["1EX-24/8", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "24", "Exit Signage"], ["1EX-24/9", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "D", "24", "Exit Signage"], ["1EX-24/10", "", 0, "ทางเดินหน้าบันไดหนีไฟ 4", "D", "24", "Exit Signage"], ["1EX-24/11", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "D", "24", "Exit Signage"], ["1EX-24/12", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "24", "Exit Signage"], ["1EX-24/13", "", 0, "ทางเดินหน้าบันไดหนีไฟ 1", "D", "24", "Exit Signage"], ["1EX-24/14", "", 0, "โถงทางเดิน", "D", "24", "Exit Signage"], ["1EX-24/15", "", 0, "โถงทางเดิน", "D", "24", "Exit Signage"], ["1EX-24/16", "", 0, "โถงทางเดิน", "D", "24", "Exit Signage"], ["1EX-24/17", "", 0, "โถงทางเดิน", "D", "24", "Exit Signage"], ["2EX-24/1", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "C", "24", "Exit Signage"], ["2EX-24/2", "", 0, "ทางเดินหน้าบันไดหนีไฟ 2", "C", "24", "Exit Signage"], ["2EX-24/3", "", 0, "พื้นที่ส่วนกลาง", "C", "24", "Exit Signage"], ["2EX-24/4", "", 0, "พื้นที่ส่วนกลาง", "C", "24", "Exit Signage"], ["2EX-24/5", "", 0, "พื้นที่ส่วนกลาง", "C", "24", "Exit Signage"], ["1EX-25/1", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "25", "Exit Signage"], ["1EX-25/2", "", 0, "ทางเดินหน้าบันไดหนีไฟ 14", "D", "25", "Exit Signage"], ["1EX-25/3", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "25", "Exit Signage"], ["1EX-25/4", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "25", "Exit Signage"], ["1EX-25/5", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "25", "Exit Signage"], ["1EX-25/6", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "D", "25", "Exit Signage"], ["1EX-25/7", "", 0, "ทางเดินหน้าบันไดหนีไฟ 4", "D", "25", "Exit Signage"], ["1EX-25/8", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "D", "25", "Exit Signage"], ["1EX-25/9", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "D", "25", "Exit Signage"], ["1EX-25/10", "", 0, "ทางเดินหน้าบันไดหนีไฟ 14", "D", "25", "Exit Signage"], ["1EX-25/11", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "25", "Exit Signage"], ["1EX-25/12", "", 0, "ทางเดินหน้าบันไดหนีไฟ 2", "D", "25", "Exit Signage"], ["1EX-25/13", "", 0, "ทางเดินหน้าบันไดหนีไฟ 14", "D", "25", "Exit Signage"], ["1EX-25/14", "", 0, "ทางเดินหน้าบันไดหนีไฟ 14", "D", "25", "Exit Signage"], ["1EX-25/15", "", 0, "ทางเดินหน้าบันไดหนีไฟ 14", "D", "25", "Exit Signage"], ["1EX-25/16", "", 0, "ทางเดินหน้าบันไดหนีไฟ 14", "D", "25", "Exit Signage"], ["1EX-25/17", "", 0, "ทางเดินหน้าบันไดหนีไฟ 14", "D", "25", "Exit Signage"], ["2EX-25/1", "", 0, "ส่วนกลาง", "D", "25", "Exit Signage"], ["2EX-25/2", "", 0, "ส่วนกลาง", "D", "25", "Exit Signage"], ["2EX-25/3", "", 0, "ส่วนกลาง", "D", "25", "Exit Signage"], ["2EX-25/4", "", 0, "ส่วนกลาง", "D", "25", "Exit Signage"], ["1EX-26/1", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "26", "Exit Signage"], ["1EX-26/2", "", 0, "ทางเดินหน้าบันไดหนีไฟ 14", "D", "26", "Exit Signage"], ["1EX-26/3", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "26", "Exit Signage"], ["1EX-26/4", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "26", "Exit Signage"], ["1EX-26/5", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "26", "Exit Signage"], ["1EX-26/6", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "D", "26", "Exit Signage"], ["1EX-26/7", "", 0, "ทางเดินหน้าบันไดหนีไฟ 4", "D", "26", "Exit Signage"], ["1EX-26/8", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "D", "26", "Exit Signage"], ["1EX-26/9", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "D", "26", "Exit Signage"], ["1EX-26/10", "", 0, "ทางเดินหน้าบันไดหนีไฟ 14", "D", "26", "Exit Signage"], ["1EX-26/11", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "26", "Exit Signage"], ["1EX-26/12", "", 0, "ทางเดินหน้าบันไดหนีไฟ 2", "D", "26", "Exit Signage"], ["1EX-26/13", "", 0, "ทางเดินหน้าบันไดหนีไฟ 14", "D", "26", "Exit Signage"], ["1EX-26/14", "", 0, "ทางเดินหน้าบันไดหนีไฟ 14", "D", "26", "Exit Signage"], ["1EX-26/15", "", 0, "ทางเดินหน้าบันไดหนีไฟ 14", "D", "26", "Exit Signage"], ["1EX-26/16", "", 0, "ทางเดินหน้าบันไดหนีไฟ 14", "D", "26", "Exit Signage"], ["1EX-26/17", "", 0, "ทางเดินหน้าบันไดหนีไฟ 14", "D", "26", "Exit Signage"], ["2EX-26/1", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "C", "26", "Exit Signage"], ["2EX-26/2", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "C", "26", "Exit Signage"], ["2EX-26/3", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "C", "26", "Exit Signage"], ["2EX-26/4", "", 0, "ส่วนกลาง", "D", "26", "Exit Signage"], ["1EX27/16", "", 0, "ทางเดินหน้าบันไดหนีไฟ 2", "D", "27", "Exit Signage"], ["1EX27/17", "", 0, "ทางเดินหน้าบันไดหนีไฟ 2", "D", "27", "Exit Signage"], ["2EX27/1", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "C", "27", "Exit Signage"], ["2EX27/2", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "C", "27", "Exit Signage"], ["2EX27/3", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "C", "27", "Exit Signage"], ["2EX27/4", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "C", "27", "Exit Signage"], ["1EX27/1", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "27", "Exit Signage"], ["1EX27/2", "", 0, "ทางเดินหน้าบันไดหนีไฟ 14", "A", "27", "Exit Signage"], ["1EX27/3", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "27", "Exit Signage"], ["1EX27/4", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "27", "Exit Signage"], ["1EX27/5", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "27", "Exit Signage"], ["1EX27/6", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "27", "Exit Signage"], ["1EX27/7", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "B", "27", "Exit Signage"], ["1EX27/8", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "B", "27", "Exit Signage"], ["1EX27/9", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "B", "27", "Exit Signage"], ["1EX27/10", "", 0, "ทางเดินหน้าบันไดหนีไฟ 4", "B", "27", "Exit Signage"], ["1EX27/11", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "B", "27", "Exit Signage"], ["1EX27/12", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "B", "27", "Exit Signage"], ["1EX27/13", "", 0, "ทางเดินหน้าบันไดหนีไฟ 14", "A", "27", "Exit Signage"], ["1EX27/14", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "A", "27", "Exit Signage"], ["1EX27/15", "", 0, "ทางเดินหน้าบันไดหนีไฟ 2", "D", "27", "Exit Signage"], ["1EX-28/1", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "28", "Exit Signage"], ["1EX-28/2", "", 0, "ทางเดินหน้าบันไดหนีไฟ 14", "A", "28", "Exit Signage"], ["1EX-28/3", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "28", "Exit Signage"], ["1EX-28/4", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "28", "Exit Signage"], ["1EX-28/5", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "28", "Exit Signage"], ["1EX-28/6", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 2", "D", "28", "Exit Signage"], ["1EX-28/7", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "A", "28", "Exit Signage"], ["1EX-28/8", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "A", "28", "Exit Signage"], ["1EX-28/9", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "A", "28", "Exit Signage"], ["1EX-28/10", "", 0, "ทางเดินหน้าบันไดหนีไฟ 4", "A", "28", "Exit Signage"], ["1EX-28/11", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "A", "28", "Exit Signage"], ["1EX-28/12", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 4", "A", "28", "Exit Signage"], ["1EX-28/13", "", 0, "ทางเดินหน้าบันไดหนีไฟ 14", "A", "28", "Exit Signage"], ["1EX-28/14", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "A", "28", "Exit Signage"], ["1EX-28/15", "", 0, "ทางเดินหน้าบันไดหนีไฟ 2", "D", "28", "Exit Signage"], ["1EX-28/16", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "28", "Exit Signage"], ["1EX-28/17", "", 0, "ทางเดินพื้นที่ส่วนกลางโซน 1", "D", "28", "Exit Signage"], ["2EX-28/1", "", 0, "ทางเดินหน้าบันไดหนีไฟ 2", "C", "28", "Exit Signage"], ["2EX-28/2", "", 0, "ทางเดินหน้าบันไดหนีไฟ 2", "C", "28", "Exit Signage"], ["2EX-28/3", "", 0, "ทางเดินหน้าบันไดหนีไฟ 2", "C", "28", "Exit Signage"], ["2EX-28/4", "", 0, "ทางเดินหน้าบันไดหนีไฟ 2", "C", "28", "Exit Signage"]];
+
+/* ===== CONFIG =====
+   หลังจาก deploy Apps Script (Code.gs) เป็น Web App แล้ว ให้นำ URL ที่ได้
+   (ลงท้ายด้วย /exec) มาใส่ในนี้ แล้ว re-deploy ไฟล์นี้ขึ้น GitHub Pages ใหม่ */
+const GS_URL = ''; // ตัวอย่าง: 'https://script.google.com/macros/s/XXXXXXXX/exec'
+const INSPECTOR_NAME = ''; // ใส่ชื่อผู้ตรวจ (ถ้าต้องการบันทึกลง log), เว้นว่างได้
+
+/* ===== STATE ===== */
+let overrides = {};      // id -> {status, checklist, note, ts}
+let statusFilters = new Set();
+
+function loadOverrides(){
+  try{ overrides = JSON.parse(localStorage.getItem('ex_status')||'{}'); }catch(e){ overrides={}; }
+}
+function saveOverrides(){
+  try{ localStorage.setItem('ex_status', JSON.stringify(overrides)); }catch(e){}
+}
+
+function getStatus(idx){
+  const id = RAW[idx][0];
+  if (overrides[id] && typeof overrides[id].status === 'number') return overrides[id].status;
+  return RAW[idx][2];
+}
+
+function floorOrder(fl){
+  if (fl.startsWith('B')){ const n=parseInt(fl.slice(1)); return isNaN(n)?-99:-n; }
+  if (fl === 'MZ') return 0.5;
+  const n=parseInt(fl); return isNaN(n)?99:n;
+}
+
+function machineIdOrder(id){
+  const m = id.match(/\/(\d+)/);
+  return m ? parseInt(m[1]) : 0;
+}
+
+/* ===== SYNC WITH GOOGLE SHEETS ===== */
+function setSyncStatus(state, text){
+  const dot = document.getElementById('syncDot');
+  const label = document.getElementById('syncText');
+  label.textContent = text;
+  dot.style.background = state==='ok' ? 'var(--success)' : state==='err' ? 'var(--danger)' : 'var(--muted)';
+}
+
+async function syncFromSheets(){
+  if (!GS_URL){
+    setSyncStatus('off', 'LOCAL ONLY');
+    return;
+  }
+  setSyncStatus('busy', 'SYNCING...');
+  try{
+    const res = await fetch(`${GS_URL}?action=getLatest`);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'sync failed');
+    // data.latest: { MachineID: {Timestamp, Switch, LED, Battery, BatteryMin, Body, OverallStatus, Note, Inspector} }
+    Object.keys(data.latest).forEach(id=>{
+      const row = data.latest[id];
+      const overall = String(row.OverallStatus||'').toLowerCase();
+      const status = overall === 'ปกติ' || overall === 'ok' ? 1 : (overall ? 2 : 0);
+      overrides[id] = {
+        status,
+        checklist: { switch: row.Switch, led: row.LED, batt: row.Battery, battMin: row.BatteryMin, body: row.Body },
+        note: row.Note || '',
+        ts: row.Timestamp || ''
+      };
+    });
+    saveOverrides();
+    render();
+    setSyncStatus('ok', 'SYNCED · ' + new Date().toLocaleTimeString('th-TH',{hour12:false}));
+  }catch(err){
+    setSyncStatus('err', 'SYNC ERROR');
+    console.error(err);
+  }
+}
+
+async function pushToSheet(record){
+  if (!GS_URL) return; // ยังไม่ตั้งค่า URL -> เก็บแค่ local
+  try{
+    await fetch(GS_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'text/plain;charset=utf-8'}, // เลี่ยง CORS preflight ของ Apps Script
+      body: JSON.stringify({ action: 'savePM', ...record })
+    });
+  }catch(err){
+    console.error('pushToSheet failed', err);
+    showToast('บันทึกลง local แล้ว แต่ sync ขึ้น Sheet ไม่สำเร็จ (จะลองใหม่ตอน sync ครั้งถัดไป)');
+  }
+}
+
+function startAutoSync(intervalMs = 30000){
+  if (!GS_URL) return;
+  syncFromSheets();
+  setInterval(syncFromSheets, intervalMs);
+}
+
+/* ===== CLOCK ===== */
+function updateClock(){
+  const d = new Date();
+  document.getElementById('clock').textContent = d.toLocaleTimeString('th-TH', {hour12:false});
+}
+setInterval(updateClock, 1000); updateClock();
+
+/* ===== FILTER UI ===== */
+function toggleStatusFilter(key, el){
+  if (statusFilters.has(key)){ statusFilters.delete(key); el.classList.remove('active'); }
+  else { statusFilters.add(key); el.classList.add('active'); }
+  applyFilter();
+}
+
+function populateFloorSelect(){
+  const floors = [...new Set(RAW.map(r=>r[5]))].sort((a,b)=>floorOrder(a)-floorOrder(b));
+  const sel = document.getElementById('floorSel');
+  floors.forEach(f=>{
+    const opt = document.createElement('option');
+    opt.value = f; opt.textContent = 'ชั้น ' + f;
+    sel.appendChild(opt);
+  });
+}
+
+function passFilter(idx){
+  const r = RAW[idx];
+  const st = getStatus(idx);
+  const stKey = st===1?'ok':st===2?'br':'un';
+  if (statusFilters.size>0 && !statusFilters.has(stKey)) return false;
+  const floorSel = document.getElementById('floorSel').value;
+  if (floorSel && r[5] !== floorSel) return false;
+  const zoneSel = document.getElementById('zoneSel').value;
+  if (zoneSel && r[4] !== zoneSel) return false;
+  const q = document.getElementById('searchBox').value.trim().toLowerCase();
+  if (q && !(r[0].toLowerCase().includes(q) || r[3].toLowerCase().includes(q))) return false;
+  return true;
+}
+
+/* ===== RENDER ===== */
+function render(){
+  const main = document.getElementById('mainArea');
+  main.innerHTML = '';
+  const idxs = RAW.map((_,i)=>i).filter(passFilter);
+  if (idxs.length===0){
+    main.innerHTML = '<div class="empty">ไม่พบรายการที่ตรงกับตัวกรอง</div>';
+    updateStats();
+    return;
+  }
+  const byFloor = {};
+  idxs.forEach(i=>{
+    const fl = RAW[i][5];
+    (byFloor[fl] = byFloor[fl]||[]).push(i);
+  });
+  const floors = Object.keys(byFloor).sort((a,b)=>floorOrder(a)-floorOrder(b));
+  floors.forEach(fl=>{
+    const items = byFloor[fl].sort((a,b)=> RAW[a][4].localeCompare(RAW[b][4]) || machineIdOrder(RAW[a][0])-machineIdOrder(RAW[b][0]));
+    const grp = document.createElement('div');
+    grp.className = 'floor-grp';
+    grp.innerHTML = `<div class="floor-hdr">
+        <div class="floor-lbl">ชั้น ${fl}</div><div class="floor-div"></div>
+        <div class="floor-cnt">${items.length} จุด</div>
+      </div><div class="grid" id="grid_${fl}"></div>`;
+    main.appendChild(grp);
+    const grid = grp.querySelector('.grid');
+    items.forEach(i=>{
+      const r = RAW[i];
+      const st = getStatus(i);
+      const cls = st===1?'ok':st===2?'br':'un';
+      const label = st===1?'ปกติ':st===2?'ชำรุด':'ยังไม่ตรวจ';
+      const card = document.createElement('div');
+      card.className = 'card ' + cls;
+      card.onclick = ()=>openModal(i);
+      card.innerHTML = `
+        <div><span class="id">${r[0]}</span><span class="zn">${r[4]||'-'}</span></div>
+        <div class="loc">${r[3]||'-'}</div>
+        <div class="badge"><span class="dot"></span>${label}</div>`;
+      grid.appendChild(card);
+    });
+  });
+  updateStats();
+}
+
+function updateStats(){
+  let ok=0, br=0, un=0;
+  RAW.forEach((r,i)=>{
+    const st = getStatus(i);
+    if (st===1) ok++; else if (st===2) br++; else un++;
+  });
+  document.getElementById('statTotal').textContent = RAW.length;
+  document.getElementById('statOk').textContent = ok;
+  document.getElementById('statBr').textContent = br;
+  document.getElementById('statUn').textContent = un;
+}
+
+function applyFilter(){ render(); }
+
+/* ===== MODAL / PM CHECKLIST ===== */
+let curIdx = null;
+let curChk = {switch:null, led:null, batt:null, body:null};
+
+function openModal(idx){
+  curIdx = idx;
+  curChk = {switch:null, led:null, batt:null, body:null};
+  const r = RAW[idx];
+  document.getElementById('mTitle').textContent = r[0];
+  document.getElementById('mSub').textContent = `ชั้น ${r[5]} · โซน ${r[4]||'-'} · ${r[3]||'-'}`;
+  document.getElementById('battMin').value = '';
+  document.getElementById('noteBox').value = '';
+  ['chkSwitch','chkLed','chkBatt','chkBody'].forEach(id=>{
+    document.getElementById(id).querySelectorAll('.chk-opt').forEach(o=>o.classList.remove('sel-pass','sel-fail'));
+  });
+  // preload existing override
+  const ov = overrides[r[0]];
+  if (ov && ov.checklist){
+    curChk = {...ov.checklist};
+    document.getElementById('battMin').value = ov.checklist.battMin || '';
+    document.getElementById('noteBox').value = ov.note || '';
+    reflectChk();
+  }
+  updateOverall();
+  document.getElementById('modalBg').classList.add('show');
+}
+
+function closeModal(){ document.getElementById('modalBg').classList.remove('show'); curIdx=null; }
+function closeOut(e){ if (e.target.id === 'modalBg') closeModal(); }
+
+function setChk(key, val, el){
+  curChk[key] = val;
+  el.parentElement.querySelectorAll('.chk-opt').forEach(o=>o.classList.remove('sel-pass','sel-fail'));
+  el.classList.add(val==='pass'?'sel-pass':'sel-fail');
+  updateOverall();
+}
+
+function reflectChk(){
+  const map = {switch:'chkSwitch', led:'chkLed', batt:'chkBatt', body:'chkBody'};
+  Object.keys(map).forEach(k=>{
+    if (!curChk[k]) return;
+    const box = document.getElementById(map[k]);
+    const opts = box.querySelectorAll('.chk-opt');
+    const target = curChk[k]==='pass'? opts[0] : opts[1];
+    target.classList.add(curChk[k]==='pass'?'sel-pass':'sel-fail');
+  });
+}
+
+function updateOverall(){
+  const box = document.getElementById('overallBox');
+  const vals = [curChk.switch, curChk.led, curChk.batt, curChk.body];
+  if (vals.some(v=>v===null)){
+    box.className = 'overall';
+    box.textContent = 'กรุณาตรวจครบทั้ง 4 ข้อ';
+    return;
+  }
+  const allPass = vals.every(v=>v==='pass');
+  box.className = 'overall ' + (allPass?'ok':'br');
+  box.textContent = allPass ? '✓ สรุปผล: ปกติ' : '✕ สรุปผล: ชำรุด (มีอย่างน้อย 1 ข้อไม่ผ่าน)';
+}
+
+function saveCheck(){
+  if (curIdx===null) return;
+  const vals = [curChk.switch, curChk.led, curChk.batt, curChk.body];
+  if (vals.some(v=>v===null)){
+    showToast('กรุณาตรวจให้ครบทั้ง 4 ข้อก่อนบันทึก');
+    return;
+  }
+  const r = RAW[curIdx];
+  const allPass = vals.every(v=>v==='pass');
+  const battMin = document.getElementById('battMin').value;
+  const note = document.getElementById('noteBox').value;
+  const overallLabel = allPass ? 'ปกติ' : 'ชำรุด';
+  overrides[r[0]] = {
+    status: allPass?1:2,
+    checklist: {...curChk, battMin},
+    note,
+    ts: new Date().toISOString()
+  };
+  saveOverrides();
+  closeModal();
+  render();
+  showToast(`บันทึกผล PM ${r[0]} เรียบร้อย` + (GS_URL ? ' (กำลัง sync ขึ้น Sheet...)' : ''));
+
+  pushToSheet({
+    machineId: r[0],
+    switch: curChk.switch,
+    led: curChk.led,
+    battery: curChk.batt,
+    batteryMin: battMin,
+    body: curChk.body,
+    overallStatus: overallLabel,
+    note,
+    inspector: INSPECTOR_NAME
+  });
+}
+
+/* ===== TOAST ===== */
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ t.style.display='none'; }, 2500);
+}
+
+/* ===== EXPORT CSV ===== */
+function exportCSV(){
+  const rows = [['Machine ID','Asset No','Status','Location','Zone','Floor','Dept','Switch','LED','Battery','BatteryMin','Body','Note','LastUpdate']];
+  RAW.forEach((r,i)=>{
+    const st = getStatus(i);
+    const stLabel = st===1?'ปกติ':st===2?'ชำรุด':'ยังไม่ตรวจ';
+    const ov = overrides[r[0]] || {};
+    const c = ov.checklist || {};
+    rows.push([r[0], r[1], stLabel, r[3], r[4], r[5], r[6],
+      c.switch||'', c.led||'', c.batt||'', c.battMin||'', c.body||'', ov.note||'', ov.ts||'']);
+  });
+  const csv = rows.map(row=>row.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `EX_Status_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ===== INIT ===== */
+loadOverrides();
+populateFloorSelect();
+render();
+setSyncStatus('off', GS_URL ? 'CONNECTING...' : 'LOCAL ONLY');
+startAutoSync(30000);
+</script>
+</body>
+</html>
